@@ -819,6 +819,128 @@
         .chat-msg.user .chat-msg-sender {
             color: #f0abfc;
         }
+
+        /* ============ صفحة الكاميرا (صور لحظاتك) ============ */
+        #cameraPage {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: #000;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #cameraVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #cameraVideo.mirrored {
+            transform: scaleX(-1);
+        }
+
+        .camera-top-bar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 22px 14px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
+            z-index: 2;
+        }
+
+        .camera-top-bar i {
+            color: #fff;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        .camera-mode-tabs {
+            display: flex;
+            gap: 22px;
+        }
+
+        .camera-mode-tab {
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .camera-mode-tab.active {
+            color: #fff;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 3px;
+        }
+
+        .camera-bottom-bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 45px;
+            padding: 20px 20px 35px;
+            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+            z-index: 2;
+        }
+
+        .camera-bottom-bar i {
+            color: #fff;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        .camera-capture-btn {
+            width: 74px;
+            height: 74px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .camera-capture-inner {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .camera-capture-inner.recording {
+            background: #ef4444;
+            border-radius: 14px;
+            width: 30px;
+            height: 30px;
+        }
+
+        #recordTimer {
+            display: none;
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            padding: 5px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            z-index: 2;
+        }
+
+        #capturePreviewModal img, #capturePreviewModal video {
+            max-width: 100%;
+            max-height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -892,9 +1014,9 @@
             </div>
 
             <div class="grid-cards">
-                <div class="card-item item-mobile">
-                    <i class="fa-solid fa-mobile-screen-button"></i>
-                    <span>إصدار الموبايل</span>
+                <div class="card-item item-mobile" onclick="openCameraPage()">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>صور لحظاتك</span>
                 </div>
                 <div class="card-item item-tv" onclick="openChatSection()">
                     <i class="fa-solid fa-comments"></i>
@@ -1013,6 +1135,44 @@
 
         <div class="container">
             <div class="turkish-list" id="favoritesListContainer"></div>
+        </div>
+    </div>
+
+    <!-- صفحة الكاميرا: صور لحظاتك -->
+    <div id="cameraPage" style="display: none;">
+        <div class="camera-container">
+            <video id="cameraVideo" autoplay playsinline muted></video>
+            <canvas id="cameraCanvas" style="display: none;"></canvas>
+            <span id="recordTimer">00:00</span>
+
+            <div class="camera-top-bar">
+                <i class="fa-solid fa-xmark" onclick="closeCameraPage()"></i>
+                <div class="camera-mode-tabs">
+                    <span class="camera-mode-tab active" id="photoModeTab" onclick="setCameraMode('photo')">صورة</span>
+                    <span class="camera-mode-tab" id="videoModeTab" onclick="setCameraMode('video')">فيديو</span>
+                </div>
+                <i class="fa-solid fa-camera-rotate" onclick="flipCamera()"></i>
+            </div>
+
+            <div class="camera-bottom-bar">
+                <i class="fa-solid fa-bolt" id="flashIcon" onclick="toggleFlash()"></i>
+                <div class="camera-capture-btn" onclick="handleCapture()">
+                    <div class="camera-capture-inner" id="captureInner"></div>
+                </div>
+                <span style="width: 22px;"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة معاينة اللقطة -->
+    <div id="capturePreviewModal" style="display: none; position: fixed; inset: 0; background: #000; z-index: 600; flex-direction: column;">
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <img id="capturedImagePreview" style="display: none;" alt="لقطة">
+            <video id="capturedVideoPreview" style="display: none;" controls autoplay></video>
+        </div>
+        <div style="display: flex; gap: 15px; padding: 20px; justify-content: center;">
+            <button class="btn-reset" style="flex: 1; max-width: 160px;" onclick="discardCapture()">إعادة المحاولة</button>
+            <button class="btn-submit" style="flex: 1; max-width: 160px; margin-top: 0;" onclick="saveCapture()">حفظ باللاحة</button>
         </div>
     </div>
 
@@ -1330,11 +1490,18 @@
         let currentOpenSeriesId = null;
 
         function showPage(targetId) {
-            const pages = ['homePage', 'dramaPage', 'turkishDramaPage', 'dynamicCategoryPage', 'seriesDetailPage', 'dashboardPage', 'aiAssistantPage', 'settingsPage', 'favoritesPage', 'chatRoomsPage', 'chatRoomPage'];
+            const pages = ['homePage', 'dramaPage', 'turkishDramaPage', 'dynamicCategoryPage', 'seriesDetailPage', 'dashboardPage', 'aiAssistantPage', 'settingsPage', 'favoritesPage', 'chatRoomsPage', 'chatRoomPage', 'cameraPage'];
+
+            const cameraWasVisible = document.getElementById('cameraPage').style.display === 'block';
+
             pages.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = 'none';
             });
+
+            if (cameraWasVisible && targetId !== 'cameraPage' && typeof stopCameraStream === 'function') {
+                stopCameraStream();
+            }
             
             const target = document.getElementById(targetId);
             if (target) target.style.display = 'block';
@@ -1627,6 +1794,189 @@
             }
         }
 
+        // ============ صفحة الكاميرا (صور لحظاتك) ============
+
+        let cameraStream = null;
+        let currentFacingMode = 'user';
+        let cameraMode = 'photo';
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isCameraRecording = false;
+        let recordTimerInterval = null;
+        let recordSeconds = 0;
+        let flashOn = false;
+        let currentCaptureBlob = null;
+        let currentCaptureType = null;
+
+        async function openCameraPage() {
+            showPage('cameraPage');
+            await startCameraStream();
+        }
+
+        async function startCameraStream() {
+            stopCameraStream();
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode },
+                    audio: cameraMode === 'video'
+                });
+                const videoEl = document.getElementById('cameraVideo');
+                videoEl.srcObject = cameraStream;
+                videoEl.classList.toggle('mirrored', currentFacingMode === 'user');
+            } catch (e) {
+                alert('يرجى السماح بالوصول للكاميرا لاستخدام هذي الميزة');
+                showPage('homePage');
+            }
+        }
+
+        function stopCameraStream() {
+            if (isCameraRecording) stopRecording();
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        function closeCameraPage() {
+            stopCameraStream();
+            showPage('homePage');
+        }
+
+        function flipCamera() {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            startCameraStream();
+        }
+
+        function toggleFlash() {
+            flashOn = !flashOn;
+            const icon = document.getElementById('flashIcon');
+            icon.classList.toggle('fa-bolt', !flashOn);
+            icon.classList.toggle('fa-bolt-slash', flashOn);
+
+            if (cameraStream) {
+                const track = cameraStream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                if (capabilities.torch) {
+                    track.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {});
+                }
+            }
+        }
+
+        function setCameraMode(mode) {
+            cameraMode = mode;
+            document.getElementById('photoModeTab').classList.toggle('active', mode === 'photo');
+            document.getElementById('videoModeTab').classList.toggle('active', mode === 'video');
+            startCameraStream();
+        }
+
+        function handleCapture() {
+            if (cameraMode === 'photo') {
+                capturePhoto();
+            } else if (isCameraRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+
+            if (currentFacingMode === 'user') {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                showCapturePreview('photo', url, blob);
+            }, 'image/jpeg', 0.92);
+        }
+
+        function startRecording() {
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(cameraStream);
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                showCapturePreview('video', url, blob);
+            };
+
+            mediaRecorder.start();
+            isCameraRecording = true;
+            document.getElementById('captureInner').classList.add('recording');
+
+            recordSeconds = 0;
+            document.getElementById('recordTimer').style.display = 'block';
+            updateRecordTimer();
+            recordTimerInterval = setInterval(updateRecordTimer, 1000);
+        }
+
+        function updateRecordTimer() {
+            const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+            const secs = String(recordSeconds % 60).padStart(2, '0');
+            document.getElementById('recordTimer').innerText = `${mins}:${secs}`;
+            recordSeconds++;
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isCameraRecording) {
+                mediaRecorder.stop();
+            }
+            isCameraRecording = false;
+            clearInterval(recordTimerInterval);
+            document.getElementById('captureInner').classList.remove('recording');
+            document.getElementById('recordTimer').style.display = 'none';
+        }
+
+        function showCapturePreview(type, url, blob) {
+            currentCaptureBlob = blob;
+            currentCaptureType = type;
+            document.getElementById('capturePreviewModal').style.display = 'flex';
+
+            const img = document.getElementById('capturedImagePreview');
+            const vid = document.getElementById('capturedVideoPreview');
+
+            if (type === 'photo') {
+                img.src = url;
+                img.style.display = 'block';
+                vid.style.display = 'none';
+                vid.pause();
+            } else {
+                vid.src = url;
+                vid.style.display = 'block';
+                img.style.display = 'none';
+            }
+        }
+
+        function discardCapture() {
+            document.getElementById('capturePreviewModal').style.display = 'none';
+            document.getElementById('capturedVideoPreview').pause();
+            currentCaptureBlob = null;
+        }
+
+        function saveCapture() {
+            if (!currentCaptureBlob) return;
+            const ext = currentCaptureType === 'photo' ? 'jpg' : 'webm';
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(currentCaptureBlob);
+            a.download = `bplay-moment-${Date.now()}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            document.getElementById('capturePreviewModal').style.display = 'none';
+        }
+
         function renderTurkishList() {
             const container = document.getElementById('turkishListContainer');
             if (!container) return;
@@ -1648,597 +1998,3 @@
             }
             container.innerHTML = html;
         }
-
-        function openDynamicCategory(catName, isRefresh) {
-            currentDynamicCategory = catName;
-            const container = document.getElementById('dynamicListContainer');
-            document.getElementById('dynamicTitle').innerText = 'دراما ' + catName;
-            
-            const filtered = seriesData.filter(s => s.category === catName);
-            if (filtered.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #cbd5e1; padding: 30px;">لا توجد مسلسلات مضافة في هذا القسم حالياً</div>';
-            } else {
-                container.innerHTML = filtered.map(item => `
-                    <div class="turkish-item" onclick="openSeriesDetail('${item.id}')">
-                        <img src="${item.image}" class="turkish-poster" alt="مسلسل">
-                        <div class="turkish-name">${item.name}</div>
-                    </div>
-                `).join('');
-            }
-            if (!isRefresh) showPage('dynamicCategoryPage');
-        }
-
-        function refreshCurrentPageData() {
-            const visiblePage = id => document.getElementById(id) && document.getElementById(id).style.display === 'block';
-
-            if (visiblePage('turkishDramaPage')) renderTurkishList();
-            if (visiblePage('dashboardPage')) renderAdminDashboard();
-            if (visiblePage('favoritesPage')) renderFavoritesList();
-            if (visiblePage('dynamicCategoryPage') && currentDynamicCategory) openDynamicCategory(currentDynamicCategory, true);
-            if (visiblePage('seriesDetailPage') && currentOpenSeriesId) renderEpisodesList(currentOpenSeriesId);
-
-            const resultsContainer = document.getElementById('searchResultsContainer');
-            if (resultsContainer && resultsContainer.style.display === 'block') performSearch();
-        }
-        window.refreshCurrentPageData = refreshCurrentPageData;
-
-        function openSeriesDetail(seriesId) {
-            const series = seriesData.find(s => s.id === seriesId);
-            if (!series) return;
-
-            currentOpenSeriesId = seriesId;
-
-            document.getElementById('seriesHeroTitle').innerText = series.name;
-            document.getElementById('seriesHeroBg').style.backgroundImage = `url('${series.image}')`;
-
-            renderEpisodesList(seriesId);
-            updateSeriesDetailHeart();
-            showPage('seriesDetailPage');
-        }
-
-        function renderEpisodesList(seriesId) {
-            const container = document.getElementById('episodesListContainer');
-            if (!container) return;
-
-            const filteredEps = episodesData.filter(e => e.seriesId === seriesId);
-
-            if (filteredEps.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #cbd5e1; padding: 20px;">لا توجد حلقات مضافة حالياً لهذا المسلسل</div>';
-                return;
-            }
-
-            container.innerHTML = filteredEps.map(ep => `
-                <div class="episode-item" onclick="playEpisode('${ep.url}')">
-                    ${ep.title}
-                </div>
-            `).join('');
-        }
-
-        function playEpisode(url) {
-            if (url && url !== '#') {
-                window.open(url, '_blank');
-            } else {
-                alert('جاري تشغيل الحلقة...');
-            }
-        }
-
-        function addNewSeries() {
-            const nameInput = document.getElementById('itemName');
-            const catSelect = document.getElementById('itemCategory');
-            const fileInput = document.getElementById('itemImageFile');
-            const name = nameInput.value.trim();
-            const cat = catSelect.value;
-
-            if (!name) return alert('يرجى كتابة اسم المسلسل');
-
-            const defaultImg = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400';
-
-            const save = async (imgUrl) => {
-                try {
-                    await window.fbAddSeries(name, cat, imgUrl);
-                    nameInput.value = '';
-                    fileInput.value = '';
-                    alert('تم إضافة المسلسل بنجاح');
-                } catch (e) {
-                    alert('حدث خطأ أثناء الإضافة، تأكد أنك مسجّل دخول: ' + e.message);
-                }
-            };
-
-            if (fileInput.files && fileInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => save(e.target.result);
-                reader.readAsDataURL(fileInput.files[0]);
-            } else {
-                save(defaultImg);
-            }
-        }
-
-        async function addNewEpisode() {
-            const seriesSelect = document.getElementById('selectSeriesForEp');
-            const titleInput = document.getElementById('epTitleInput');
-            const urlInput = document.getElementById('epUrlInput');
-
-            const seriesId = seriesSelect.value;
-            const title = titleInput.value.trim();
-            const url = urlInput.value.trim() || '#';
-
-            if (!seriesId || !title) return alert('يرجى اختيار مسلسل وإدخال عنوان الحلقة');
-
-            try {
-                await window.fbAddEpisode(seriesId, title, url);
-                titleInput.value = '';
-                urlInput.value = '';
-                alert('تم إضافة الحلقة بنجاح');
-            } catch (e) {
-                alert('حدث خطأ أثناء الإضافة، تأكد أنك مسجّل دخول: ' + e.message);
-            }
-        }
-
-        async function deleteSeries(id) {
-            if (!confirm('هل أنت متأكد من حذف هذا المسلسل وكل حلقاته؟')) return;
-            try {
-                await window.fbDeleteSeries(id);
-            } catch (e) {
-                alert('حدث خطأ أثناء الحذف، تأكد أنك مسجّل دخول: ' + e.message);
-            }
-        }
-
-        function renderAdminDashboard() {
-            const selectEl = document.getElementById('selectSeriesForEp');
-            const adminList = document.getElementById('adminItemsList');
-
-            if (selectEl) {
-                selectEl.innerHTML = seriesData.map(s => `<option value="${s.id}">${s.name} (${s.category})</option>`).join('');
-            }
-
-            if (adminList) {
-                if (seriesData.length === 0) {
-                    adminList.innerHTML = '<p style="text-align: center; color: #aaa;">لا توجد مسلسلات</p>';
-                    return;
-                }
-                adminList.innerHTML = seriesData.map(s => `
-                    <div class="admin-item-row">
-                        <div class="admin-item-info">
-                            <img src="${s.image}">
-                            <div>
-                                <div style="font-size: 14px; font-weight: bold;">${s.name}</div>
-                                <div style="font-size: 11px; color: var(--primary-color);">القسم: ${s.category} | الحلقات: ${episodesData.filter(e=>e.seriesId === s.id).length}</div>
-                            </div>
-                        </div>
-                        <button class="btn-delete" onclick="deleteSeries('${s.id}')">حذف المسلسل</button>
-                    </div>
-                `).join('');
-            }
-        }
-
-        // ============ وظائف صفحة الإعدادات (مشاكل وحلول) ============
-
-
-        function resetFavorites() {
-            localStorage.removeItem('bplay_favorites');
-            alert('تم إعادة ضبط قسم المفضلة بنجاح، يرجى إعادة إضافة المسلسلات إلى المفضلة من جديد');
-        }
-
-        function clearAllAppData() {
-            const confirmClear = confirm('هل أنت متأكد من مسح جميع بيانات التطبيق؟ سيتم حذف المفضلة وسجل المشاهدة والإعدادات، ولا يمكن التراجع عن هذا الإجراء');
-            if (!confirmClear) return;
-
-            localStorage.clear();
-            alert('تم مسح جميع بيانات التطبيق بنجاح، سيتم إعادة تشغيل التطبيق الآن');
-            location.reload();
-        }
-
-        // ============ حماية لوحة التحكم ============
-
-        let logoTapCount = 0;
-        let logoTapTimer = null;
-
-        function handleLogoTap() {
-            logoTapCount++;
-            clearTimeout(logoTapTimer);
-            logoTapTimer = setTimeout(() => { logoTapCount = 0; }, 3000);
-
-            if (logoTapCount >= 5) {
-                logoTapCount = 0;
-                openAdminLoginModal();
-            }
-        }
-
-        // ============ تسجيل الدخول عبر Firebase Authentication ============
-
-        function openAdminLoginModal() {
-            document.getElementById('adminLoginModal').style.display = 'flex';
-            document.getElementById('adminEmailInput').value = '';
-            document.getElementById('adminPasswordInput').value = '';
-        }
-
-        function closeAdminLoginModal() {
-            document.getElementById('adminLoginModal').style.display = 'none';
-        }
-
-        async function submitAdminLogin() {
-            const email = document.getElementById('adminEmailInput').value.trim();
-            const password = document.getElementById('adminPasswordInput').value.trim();
-
-            if (!email || !password) return alert('يرجى إدخال البريد الإلكتروني وكلمة المرور');
-
-            try {
-                await window.fbSignIn(email, password);
-                if (!window.isAdminLoggedIn) {
-                    await window.fbSignOut();
-                    alert('هذا الحساب ليس حساب الأدمن');
-                    return;
-                }
-                closeAdminLoginModal();
-                showPage('dashboardPage');
-            } catch (e) {
-                alert('فشل تسجيل الدخول، تأكد من صحة البريد وكلمة المرور');
-            }
-        }
-
-        async function adminLogout() {
-            if (!confirm('هل تريد تسجيل الخروج من لوحة التحكم؟')) return;
-            await window.fbSignOut();
-            showPage('homePage');
-        }
-
-        async function sendAdminPasswordReset() {
-            const email = document.getElementById('adminEmailInput').value.trim();
-            if (!email) return alert('اكتب بريدك الإلكتروني أولاً بالحقل بالأعلى');
-            try {
-                await window.fbResetPassword(email);
-                alert('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني');
-            } catch (e) {
-                alert('حدث خطأ: تأكد من صحة البريد الإلكتروني');
-            }
-        }
-
-        let recognition = null;
-        let isRecording = false;
-
-        function startVoiceRecognition() {
-            const micBtn = document.getElementById('micBtn');
-
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(function(stream) {
-                    initSpeechRecognition();
-                })
-                .catch(function(err) {
-                    alert('يرجى السماح بالوصول للميكروفون من إعدادات المتصفح للتمكن من التحدث.');
-                });
-            } else {
-                initSpeechRecognition();
-            }
-        }
-
-        function initSpeechRecognition() {
-            const micBtn = document.getElementById('micBtn');
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-            if (!SpeechRecognition) {
-                alert('المتصفح الذي تستخدمه لا يدعم الخاصية الصوتية، يرجى استخدام متصفح Chrome أو Safari.');
-                return;
-            }
-
-            if (isRecording) {
-                if (recognition) recognition.stop();
-                return;
-            }
-
-            recognition = new SpeechRecognition();
-            recognition.lang = 'ar-SA';
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onstart = function() {
-                isRecording = true;
-                micBtn.classList.add('recording');
-            };
-
-            recognition.onresult = function(event) {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('aiInput').value = transcript;
-                sendAiMessage();
-            };
-
-            recognition.onerror = function(event) {
-                isRecording = false;
-                micBtn.classList.remove('recording');
-                if(event.error === 'not-allowed') {
-                    alert('تم رفض الوصول للميكروفون. يرجى تفعيله من إعدادات الموقع.');
-                }
-            };
-
-            recognition.onend = function() {
-                isRecording = false;
-                micBtn.classList.remove('recording');
-            };
-
-            recognition.start();
-        }
-
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ar-SA';
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function handleAiKeyPress(e) {
-            if (e.key === 'Enter') sendAiMessage();
-        }
-
-        function sendAiMessage() {
-            const input = document.getElementById('aiInput');
-            const text = input.value.trim();
-            if (!text) return;
-
-            appendChatMessage(text, 'user');
-            input.value = '';
-
-            setTimeout(() => {
-                generateAiResponse(text);
-            }, 500);
-        }
-
-        function appendChatMessage(msg, sender) {
-            const container = document.getElementById('chatMessages');
-            const div = document.createElement('div');
-            div.className = `chat-msg ${sender}`;
-            div.innerText = msg;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function generateAiResponse(userMsg) {
-            const query = userMsg.toLowerCase();
-            let response = "";
-
-            if (query.includes('اقترح') || query.includes('ترشيح') || query.includes('افضل') || query.includes('أفضل')) {
-                if (seriesData.length > 0) {
-                    const randomSeries = seriesData[Math.floor(Math.random() * seriesData.length)];
-                    response = `أنصحك بمشاهدة مسلسل "${randomSeries.name}" من قسم ${randomSeries.category}!`;
-                } else {
-                    response = "لا توجد مسلسلات مضافة حالياً لاقتراحها.";
-                }
-            } else if (query.includes('تركي') || query.includes('كوري') || query.includes('مصري') || query.includes('سوري')) {
-                const cat = query.includes('تركي') ? 'تركي' : query.includes('كوري') ? 'كوري' : query.includes('مصري') ? 'مصري' : 'سوري';
-                const count = seriesData.filter(s => s.category === cat).length;
-                response = `لدينا حالياً ${count} مسلسل في قسم الـ ${cat}. يمكنك الذهاب إلى قسم الدراما لاكتشافها!`;
-            } else if (query.includes('مرحبا') || query.includes('هلا') || query.includes('السلام') || query.includes('أهلا')) {
-                response = "أهلاً بك! كيف يمكنني مساعدتك اليوم في تطبيق B PLAY؟";
-            } else {
-                response = `شكراً لتواصلك! يمكنك تصفح الأقسام المختلفة للوصول للمحتوى المفضل لديك.`;
-            }
-
-            appendChatMessage(response, 'bot');
-            speakText(response);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            applySavedTheme();
-
-            document.addEventListener('click', function(e) {
-                const searchBox = document.querySelector('.search-box');
-                const resultsContainer = document.getElementById('searchResultsContainer');
-                if (resultsContainer && searchBox && !searchBox.contains(e.target)) {
-                    resultsContainer.style.display = 'none';
-                }
-            });
-        });
-    </script>
-    <!-- نافذة إنشاء غرفة دردشة جديدة -->
-    <div id="createRoomModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center;">
-        <div style="background: var(--bg-color-2); border: 1px solid var(--primary-color); border-radius: 18px; padding: 28px 22px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.6);">
-            <i class="fa-solid fa-users" style="font-size: 34px; color: var(--primary-color); margin-bottom: 14px; display: block;"></i>
-            <h3 style="margin-bottom: 18px; color: #fff;">إنشاء غرفة جديدة</h3>
-            <input type="text" id="newRoomNameInput" placeholder="اسم الغرفة" style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid var(--primary-color); background: var(--bg-color-1); color: #fff; margin-bottom: 15px; text-align: center; font-size: 15px; outline: none;" onkeypress="if(event.key==='Enter') submitCreateRoom()">
-            <button class="btn-submit" onclick="submitCreateRoom()" style="margin-bottom: 8px;">إنشاء</button>
-            <button class="btn-reset" onclick="closeCreateRoomModal()" style="margin-top: 0;">إلغاء</button>
-        </div>
-    </div>
-
-    <!-- نافذة تسجيل دخول / إنشاء حساب للمستخدمين (للدردشة) -->
-    <div id="userAuthModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center;">
-        <div style="background: var(--bg-color-2); border: 1px solid var(--primary-color); border-radius: 18px; padding: 28px 22px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.6);">
-            <i class="fa-solid fa-comments" style="font-size: 34px; color: var(--primary-color); margin-bottom: 14px; display: block;"></i>
-            <h3 style="margin-bottom: 18px; color: #fff;">دخول الدردشة</h3>
-
-            <div class="turkish-tabs" style="margin: 0 0 15px;">
-                <button class="tab-btn active" id="authTabLogin" onclick="switchAuthTab('login')" style="padding: 8px 20px;">تسجيل الدخول</button>
-                <button class="tab-btn" id="authTabSignup" onclick="switchAuthTab('signup')" style="padding: 8px 20px;">إنشاء حساب</button>
-            </div>
-
-            <input type="text" id="authDisplayNameInput" placeholder="اسمك اللي راح يظهر بالدردشة" style="display: none; width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid var(--primary-color); background: var(--bg-color-1); color: #fff; margin-bottom: 10px; text-align: center; font-size: 15px; outline: none;">
-            <input type="email" id="authEmailInput" placeholder="البريد الإلكتروني" style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid var(--primary-color); background: var(--bg-color-1); color: #fff; margin-bottom: 10px; text-align: center; font-size: 15px; outline: none;">
-            <input type="password" id="authPasswordInput" placeholder="كلمة المرور" style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid var(--primary-color); background: var(--bg-color-1); color: #fff; margin-bottom: 15px; text-align: center; font-size: 15px; outline: none;">
-
-            <button class="btn-submit" id="authSubmitBtn" onclick="submitUserAuth()" style="margin-bottom: 8px;">دخول</button>
-            <button class="btn-reset" onclick="closeUserAuthModal()" style="margin-top: 0;">إلغاء</button>
-        </div>
-    </div>
-
-    <!-- نافذة تسجيل الدخول للوحة التحكم -->
-    <div id="adminLoginModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center;">
-        <div style="background: var(--bg-color-2); border: 1px solid var(--primary-color); border-radius: 18px; padding: 28px 22px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.6);">
-            <i class="fa-solid fa-lock" style="font-size: 34px; color: var(--primary-color); margin-bottom: 14px; display: block;"></i>
-            <h3 style="margin-bottom: 18px; color: #fff;">دخول لوحة التحكم</h3>
-            <input type="email" id="adminEmailInput" placeholder="البريد الإلكتروني" style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid var(--primary-color); background: var(--bg-color-1); color: #fff; margin-bottom: 10px; text-align: center; font-size: 15px; outline: none;">
-            <input type="password" id="adminPasswordInput" placeholder="كلمة المرور" style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid var(--primary-color); background: var(--bg-color-1); color: #fff; margin-bottom: 12px; text-align: center; font-size: 15px; outline: none;" onkeypress="if(event.key==='Enter') submitAdminLogin()">
-            <div style="text-align: left; margin-bottom: 15px;">
-                <span onclick="sendAdminPasswordReset()" style="font-size: 12px; color: var(--primary-color); cursor: pointer;">نسيت كلمة المرور؟</span>
-            </div>
-            <button class="btn-submit" onclick="submitAdminLogin()" style="margin-bottom: 8px;">دخول</button>
-            <button class="btn-reset" onclick="closeAdminLoginModal()" style="margin-top: 0;">إلغاء</button>
-        </div>
-    </div>
-    <!-- ============ ربط Firebase ============ -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import {
-            getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile,
-            signOut, onAuthStateChanged, sendPasswordResetEmail
-        } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-        import {
-            getFirestore, collection, doc, setDoc, deleteDoc, addDoc, getDocs, onSnapshot, query, where, orderBy
-        } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBTLv-6vyLhHgPuA4atyHxr9iu6jPnqqRY",
-            authDomain: "bplay-app-9f793.firebaseapp.com",
-            projectId: "bplay-app-9f793",
-            storageBucket: "bplay-app-9f793.firebasestorage.app",
-            messagingSenderId: "673836633068",
-            appId: "1:673836633068:web:ae2d51e4fe1817bb248ec9",
-            measurementId: "G-7TMP00CZEK"
-        };
-
-        const ADMIN_EMAIL = 'gterkhaled@gmail.com';
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        const seriesCol = collection(db, 'series');
-        const episodesCol = collection(db, 'episodes');
-        const chatMessagesCol = collection(db, 'chatMessages');
-        const chatRoomsCol = collection(db, 'chatRooms');
-
-        // تحديث مباشر (Real-time) لبيانات المسلسلات
-        onSnapshot(seriesCol, (snapshot) => {
-            window.seriesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (typeof window.refreshCurrentPageData === 'function') window.refreshCurrentPageData();
-        }, (err) => console.error('Firestore series error:', err));
-
-        // تحديث مباشر (Real-time) لبيانات الحلقات
-        onSnapshot(episodesCol, (snapshot) => {
-            window.episodesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (typeof window.refreshCurrentPageData === 'function') window.refreshCurrentPageData();
-        }, (err) => console.error('Firestore episodes error:', err));
-
-        // إضافة/حذف مسلسل
-        window.fbAddSeries = async (name, category, image) => {
-            const newDoc = doc(seriesCol);
-            await setDoc(newDoc, { name, category, image, createdAt: Date.now() });
-            return newDoc.id;
-        };
-
-        window.fbDeleteSeries = async (id) => {
-            await deleteDoc(doc(db, 'series', id));
-            const relatedEpisodes = (window.episodesData || []).filter(e => e.seriesId === id);
-            for (const ep of relatedEpisodes) {
-                await deleteDoc(doc(db, 'episodes', ep.id));
-            }
-        };
-
-        // إضافة/حذف حلقة
-        window.fbAddEpisode = async (seriesId, title, url) => {
-            const newDoc = doc(episodesCol);
-            await setDoc(newDoc, { seriesId, title, url, createdAt: Date.now() });
-        };
-
-        window.fbDeleteEpisode = async (id) => {
-            await deleteDoc(doc(db, 'episodes', id));
-        };
-
-        // تسجيل الدخول / الخروج (يشتغل للأدمن وللمستخدمين العاديين معًا)
-        window.fbSignIn = (email, password) => signInWithEmailAndPassword(auth, email, password);
-        window.fbSignOut = () => signOut(auth);
-        window.fbResetPassword = (email) => sendPasswordResetEmail(auth, email);
-
-        // إنشاء حساب مستخدم عادي جديد (للدردشة)
-        window.fbUserSignUp = async (email, password, displayName) => {
-            const cred = await createUserWithEmailAndPassword(auth, email, password);
-            await updateProfile(cred.user, { displayName });
-            return cred.user;
-        };
-
-        // إرسال رسالة دردشة
-        window.fbSendChatMessage = async (roomId, text) => {
-            if (!auth.currentUser) throw new Error('not-authenticated');
-            await addDoc(chatMessagesCol, {
-                roomId,
-                text,
-                senderUid: auth.currentUser.uid,
-                senderName: auth.currentUser.displayName || (auth.currentUser.email || 'مستخدم').split('@')[0],
-                createdAt: Date.now()
-            });
-        };
-
-        // الاستماع لرسائل غرفة معينة (Real-time)
-        let unsubscribeChatListener = null;
-        window.fbListenToRoom = (roomId, callback) => {
-            if (unsubscribeChatListener) unsubscribeChatListener();
-            const q = query(chatMessagesCol, where('roomId', '==', roomId));
-            unsubscribeChatListener = onSnapshot(q, (snapshot) => {
-                const messages = snapshot.docs
-                    .map(d => ({ id: d.id, ...d.data() }))
-                    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-                callback(messages);
-            }, (err) => {
-                console.error('Chat listener error:', err);
-                alert('حدث خطأ أثناء تحميل الرسائل: ' + err.message);
-            });
-        };
-
-        window.fbStopListeningToRoom = () => {
-            if (unsubscribeChatListener) {
-                unsubscribeChatListener();
-                unsubscribeChatListener = null;
-            }
-        };
-
-        // إنشاء غرفة دردشة جديدة
-        window.fbCreateChatRoom = async (name) => {
-            if (!auth.currentUser) throw new Error('not-authenticated');
-            const newDoc = doc(chatRoomsCol);
-            await setDoc(newDoc, {
-                name,
-                createdBy: auth.currentUser.uid,
-                createdByName: auth.currentUser.displayName || (auth.currentUser.email || 'مستخدم').split('@')[0],
-                createdAt: Date.now()
-            });
-            return newDoc.id;
-        };
-
-        // حذف غرفة دردشة (وكل رسائلها)
-        window.fbDeleteChatRoom = async (roomId) => {
-            await deleteDoc(doc(db, 'chatRooms', roomId));
-            const q = query(chatMessagesCol, where('roomId', '==', roomId));
-            const snapshot = await getDocs(q);
-            for (const msgDoc of snapshot.docs) {
-                await deleteDoc(msgDoc.ref);
-            }
-        };
-
-        // الاستماع لقائمة الغرف (Real-time)
-        let unsubscribeChatRoomsListener = null;
-        window.fbListenToChatRooms = (callback) => {
-            if (unsubscribeChatRoomsListener) unsubscribeChatRoomsListener();
-            const q = query(chatRoomsCol, orderBy('createdAt', 'desc'));
-            unsubscribeChatRoomsListener = onSnapshot(q, (snapshot) => {
-                const rooms = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                callback(rooms);
-            }, (err) => console.error('Chat rooms listener error:', err));
-        };
-
-        window.fbStopListeningToChatRooms = () => {
-            if (unsubscribeChatRoomsListener) {
-                unsubscribeChatRoomsListener();
-                unsubscribeChatRoomsListener = null;
-            }
-        };
-
-        // مراقبة حالة تسجيل الدخول — يفرّق بين الأدمن وأي مستخدم عادي آخر
-        onAuthStateChanged(auth, (user) => {
-            window.currentUser = user;
-            window.isAdminLoggedIn = !!(user && user.email === ADMIN_EMAIL);
-        });
-    </script>
-
-</body>
-</html>
