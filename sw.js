@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bplay-v1';
+const CACHE_NAME = 'bplay-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -30,7 +30,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+  // نتدخل فقط بملفات موقعنا نفسه (نفس النطاق)، ونسيب أي ملف خارجي
+  // (خطوط، أعلام، مكتبات CDN) يشتغل طبيعي بدون أي تدخل من عامل الخدمة
+  const isSameOrigin = event.request.url.startsWith(self.location.origin);
+
+  if (isSameOrigin) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+  }
 });
